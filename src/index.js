@@ -11,9 +11,58 @@ import Player from "./classes/Player.js";
 
  const player = new Player(canvas.width, canvas.height);
 
- player.draw(ctx);
+ const keys = {
+    left: false,
+    right: false,
 
- window.addEventListener("keydown", () =>{
-    console.log("teste");
+ };
+
+ const gameLoop = () => {
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (keys.left) {
+        player.position.x -= 1
+    };
+
+    
+    if (keys.right) {
+        player.position.x += 1
+    };
+
+   
+
+    player.draw(ctx);
+
+    window.requestAnimationFrame(gameLoop);
+ };
+
+ gameLoop();
+
+  addEventListener("keydown", (event) =>{
+    const key = event.key.toLowerCase();
+
+    if (key === "a") {
+        keys.left = true;
+    }
+    
+    if (key === "d") {
+        keys.right = true;
+    }
+ });
+
+
+
+
+ addEventListener("keyup", (event) =>{
+    const key = event.key.toLowerCase();
+
+    if (key === "a") {
+        keys.left = false;
+    }
+    
+    if (key === "d") {
+        keys.right = false;
+    }
  });
 
