@@ -9,6 +9,8 @@ import Player from "./classes/Player.js";
  canvas.width = innerWidth;
  canvas.height = innerHeight;
 
+ ctx.imageSmoothingEnabled = false;
+
  const player = new Player(canvas.width, canvas.height);
 
  const keys = {
@@ -21,13 +23,13 @@ import Player from "./classes/Player.js";
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (keys.left) {
-        player.position.x -= 1
+    if (keys.left && player.position.x >= 0) {
+        player.moveleft();
     };
 
     
-    if (keys.right) {
-        player.position.x += 1
+    if (keys.right && player.position.x <= canvas.width - player.width) {
+        player.moveRight();
     };
 
    
