@@ -109,12 +109,18 @@ import Starfield from "./classes/Starfield.js";
     const targetY = player.position.y + player.height / 2;
     const distance = Math.hypot(targetX - startX, targetY - startY) || 1;
     const speed = 5;
+    const velocityX = invader.isMobile
+        ? 0
+        : ((targetX - startX) / distance) * speed;
+    const velocityY = invader.isMobile
+        ? speed
+        : ((targetY - startY) / distance) * speed;
 
     invaderLasers.push(new Laser(
         startX - 2.5,
         startY,
-        ((targetX - startX) / distance) * speed,
-        ((targetY - startY) / distance) * speed,
+        velocityX,
+        velocityY,
         "#ff5470"
     ));
     nextInvaderShotAt = timestamp + 1000 + Math.random() * 2000;
