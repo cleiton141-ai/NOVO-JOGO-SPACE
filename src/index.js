@@ -28,6 +28,8 @@ import Starfield from "./classes/Starfield.js";
      new Barrier(canvas.width * 0.65, canvas.height * 0.62, 180, 18),
  ];
  let nextInvaderShotAt = 0;
+ let touchStartX = 0;
+ let touchMoved = false;
 
  const keys = {
     left: false,
@@ -69,6 +71,24 @@ import Starfield from "./classes/Starfield.js";
         -8,
         "#55e7ff"
     ));
+ };
+
+ const movePlayerTo = (clientX) => {
+    const canvasBounds = canvas.getBoundingClientRect();
+    const canvasX = (clientX - canvasBounds.left) * (canvas.width / canvasBounds.width);
+    const nextX = canvasX - player.width / 2;
+    const previousX = player.position.x;
+
+    player.position.x = Math.max(
+        0,
+        Math.min(nextX, canvas.width - player.width)
+    );
+
+    if (player.position.x < previousX) {
+        player.targetRotation = -Math.PI / 4;
+    } else if (player.position.x > previousX) {
+        player.targetRotation = Math.PI / 4;
+    }
  };
 
  const shootInvaderLaser = (timestamp) => {
@@ -235,6 +255,49 @@ import Starfield from "./classes/Starfield.js";
  addEventListener("resize", resizeGame);
 
  restartButton.addEventListener("click", resetRound);
+
+ canvas.addEventListener("pointerdown", (event) => {
+    if (gameOver) {
+        return;
+    }
+
+    touchStartX = event.clientX;
+    touchMoved = false;
+    canvas.setPointerCapture(event.pointerId);
+ });
+
+ canvas.addEventListener("pointermove", (event) => {
+    if (!canvas.hasPointerCapture(event.pointerId) || gameOver) {
+        return;
+    }
+
+    if (Math.abs(event.clientX - touchStartX) > 8) {
+        touchMoved = true;
+    }
+
+    movePlayerTo(event.clientX);
+ });
+
+ canvas.addEventListener("pointerup", (event) => {
+    if (!canvas.hasPointerCapture(event.pointerId)) {
+        return;
+    }
+
+    if (!touchMoved) {
+        shootPlayerLaser();
+    } else {
+        player.stopMoving();
+    }
+
+    canvas.releasePointerCapture(event.pointerId);
+ });
+
+ canvas.addEventListener("pointercancel", (event) => {
+    if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+    }
+    player.stopMoving();
+ });
 
   addEventListener("keydown", (event) =>{
     const key = event.key.toLowerCase();
