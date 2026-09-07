@@ -6,7 +6,7 @@ class Invader {
         this.isMobile = canvaswidth <= 600;
         this.width = this.isMobile ? 30 : 60;
         this.height = this.isMobile ? 30 : 60;
-        this.columns = 10;
+        this.columns = this.isMobile ? 4 : 10;
         this.rows = this.isMobile ? 1 : 2;
         this.velocity = this.isMobile ? 1 : 2;
         this.maxVelocity = this.isMobile ? 1 : 5;
@@ -33,12 +33,15 @@ class Invader {
         const isMobile = canvaswidth <= 600;
 
         if (isMobile === this.isMobile) {
+            this.canvaswidth = canvaswidth;
             return false;
         }
 
+        this.canvaswidth = canvaswidth;
         this.isMobile = isMobile;
         this.width = isMobile ? 30 : 60;
         this.height = isMobile ? 30 : 60;
+        this.columns = isMobile ? 4 : 10;
         this.rows = isMobile ? 1 : 2;
         this.velocity = isMobile ? 1 : 2;
         this.maxVelocity = isMobile ? 1 : 5;
@@ -53,17 +56,19 @@ class Invader {
         this.offsets = formation;
         this.formationWidth = Math.max(...formation.map((offset) => offset.x)) + this.width;
         this.invaders = formation.map((offset) => ({ ...offset, alive: true }));
-        this.position.x = 0;
+        this.position.x = this.isMobile
+            ? Math.max(0, (this.canvaswidth - this.formationWidth) / 2)
+            : 0;
         this.position.y = 30;
         this.direction = 1;
-        this.velocity = 2;
+        this.velocity = this.isMobile ? 1 : 2;
     }
 
     getInitialFormation() {
         const formation = [];
 
         for (let row = 0; row < this.rows; row += 1) {
-            for (let column = 0; column < 10; column += 1) {
+            for (let column = 0; column < this.columns; column += 1) {
                 formation.push({
                     x: column * (this.width + this.spacing),
                     y: row * (this.height + this.spacing),
