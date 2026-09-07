@@ -138,6 +138,16 @@ import Starfield from "./classes/Starfield.js";
     }
  };
 
+ const drawBarriers = () => {
+    if (invader.isMobile) {
+        return;
+    }
+
+    for (const barrier of barriers) {
+        barrier.draw(ctx);
+    }
+ };
+
  const resetRound = () => {
      player.reset(canvas.width, canvas.height);
      invader.resetFormation(false);
@@ -170,6 +180,10 @@ import Starfield from "./classes/Starfield.js";
  }));
 
  const removeLasersBlockedByBarriers = (lasers) => {
+    if (invader.isMobile) {
+        return;
+    }
+
     for (let index = lasers.length - 1; index >= 0; index -= 1) {
         if (laserHitsBarrier(lasers[index])) {
             lasers.splice(index, 1);
@@ -215,9 +229,7 @@ import Starfield from "./classes/Starfield.js";
     if (gameOver) {
         player.draw(ctx);
         invader.draw(ctx);
-        for (const barrier of barriers) {
-            barrier.draw(ctx);
-        }
+        drawBarriers();
         window.requestAnimationFrame(gameLoop);
         return;
     }
@@ -250,9 +262,7 @@ import Starfield from "./classes/Starfield.js";
 
     player.draw(ctx);
     invader.draw(ctx);
-    for (const barrier of barriers) {
-        barrier.draw(ctx);
-    }
+    drawBarriers();
     drawLasers(playerLasers);
     drawLasers(invaderLasers);
 
