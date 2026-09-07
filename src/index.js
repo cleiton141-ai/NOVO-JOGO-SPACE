@@ -41,6 +41,9 @@ import Starfield from "./classes/Starfield.js";
     canvas.width = innerWidth;
     canvas.height = innerHeight;
     starfield.resize(canvas.width, canvas.height);
+    if (invader.setResponsiveMode(canvas.width)) {
+        invader.resetFormation(false);
+    }
     player.position.x = Math.max(
         0,
         Math.min(player.position.x, canvas.width - player.width)

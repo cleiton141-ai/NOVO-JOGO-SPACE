@@ -3,14 +3,16 @@ import { PATH_INVADER_IMAGE } from "../utils/constants.js";
 
 class Invader {
     constructor(canvaswidth) {
-        this.width = 60;
-        this.height = 60;
+        this.isMobile = canvaswidth <= 600;
+        this.width = this.isMobile ? 30 : 60;
+        this.height = this.isMobile ? 30 : 60;
         this.columns = 10;
-        this.rows = 2;
-        this.velocity = 2;
-        this.maxVelocity = 5;
+        this.rows = this.isMobile ? 1 : 2;
+        this.velocity = this.isMobile ? 1 : 2;
+        this.maxVelocity = this.isMobile ? 1 : 5;
         this.direction = 1;
-        this.spacing = 0;
+        this.spacing = this.isMobile ? 2 : 0;
+        this.canDescend = !this.isMobile;
         this.formationWidth = 0;
         this.invaders = [];
         this.offsets = [];
@@ -25,6 +27,24 @@ class Invader {
         this.canvaswidth = canvaswidth;
 
         this.resetFormation(false);
+    }
+
+    setResponsiveMode(canvaswidth) {
+        const isMobile = canvaswidth <= 600;
+
+        if (isMobile === this.isMobile) {
+            return false;
+        }
+
+        this.isMobile = isMobile;
+        this.width = isMobile ? 30 : 60;
+        this.height = isMobile ? 30 : 60;
+        this.rows = isMobile ? 1 : 2;
+        this.velocity = isMobile ? 1 : 2;
+        this.maxVelocity = isMobile ? 1 : 5;
+        this.spacing = isMobile ? 2 : 0;
+        this.canDescend = !isMobile;
+        return true;
     }
 
     resetFormation(random = false) {
@@ -42,7 +62,7 @@ class Invader {
     getInitialFormation() {
         const formation = [];
 
-        for (let row = 0; row < 2; row += 1) {
+        for (let row = 0; row < this.rows; row += 1) {
             for (let column = 0; column < 10; column += 1) {
                 formation.push({
                     x: column * (this.width + this.spacing),
@@ -55,6 +75,10 @@ class Invader {
     }
 
     getRandomFormation() {
+        if (this.isMobile) {
+            return this.getInitialFormation();
+        }
+
         const formations = [
             [
                 [0, 0, 0, 0, 1, 1, 1, 1, 2, 2],
@@ -91,15 +115,19 @@ class Invader {
         if (this.position.x + this.formationWidth >= this.canvaswidth) {
             this.position.x = Math.max(0, this.canvaswidth - this.formationWidth);
             this.direction = -1;
-            this.position.y += 1;
-            this.velocity = Math.min(this.velocity + 1, this.maxVelocity);
+            if (this.canDescend) {
+                this.position.y += 1;
+                this.velocity = Math.min(this.velocity + 1, this.maxVelocity);
+            }
         }
 
         if (this.position.x <= 0) {
             this.position.x = 0;
             this.direction = 1;
-            this.position.y += 1;
-            this.velocity = Math.min(this.velocity + 1, this.maxVelocity);
+            if (this.canDescend) {
+                this.position.y += 1;
+                this.velocity = Math.min(this.velocity + 1, this.maxVelocity);
+            }
         }
     }
 
