@@ -1,4 +1,8 @@
 import Player from "./classes/Player.js";
+import Invader from "./classes/Invader.js";
+import Laser from "./classes/Laser.js";
+import Barrier from "./classes/Barrier.js";
+import Starfield from "./classes/Starfield.js";
 
 
 
@@ -8,10 +12,22 @@ import Player from "./classes/Player.js";
 
  canvas.width = innerWidth;
  canvas.height = innerHeight;
+ const starfield = new Starfield(canvas.width, canvas.height);
 
  ctx.imageSmoothingEnabled = false;
 
  const player = new Player(canvas.width, canvas.height);
+ const invader = new Invader(canvas.width);
+ const playerLasers = [];
+ const invaderLasers = [];
+ const gameOverScreen = document.querySelector("#game-over");
+ const restartButton = document.querySelector("#restart-button");
+ let gameOver = false;
+ const barriers = [
+     new Barrier(canvas.width * 0.2, canvas.height * 0.62, 180, 18),
+     new Barrier(canvas.width * 0.65, canvas.height * 0.62, 180, 18),
+ ];
+ let nextInvaderShotAt = 0;
 
  const keys = {
     left: false,
@@ -19,9 +35,163 @@ import Player from "./classes/Player.js";
 
  };
 
- const gameLoop = () => {
+ const resizeGame = () => {
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    starfield.resize(canvas.width, canvas.height);
+    player.position.x = Math.max(
+        0,
+        Math.min(player.position.x, canvas.width - player.width)
+    );
+    player.position.y = canvas.height - player.height - 30;
+    barriers[0].position.x = canvas.width * 0.2;
+    barriers[0].position.y = canvas.height * 0.62;
+    barriers[1].position.x = canvas.width * 0.65;
+    barriers[1].position.y = canvas.height * 0.62;
+ };
+
+ const hasCollision = (first, second) => (
+    first.position.x < second.x + second.width &&
+    first.position.x + first.width > second.x &&
+    first.position.y < second.y + second.height &&
+    first.position.y + first.height > second.y
+ );
+
+ const shootPlayerLaser = () => {
+    if (!player.isAlive) {
+        return;
+    }
+
+    playerLasers.push(new Laser(
+        player.position.x + player.width / 2 - 2.5,
+        player.position.y,
+        0,
+        -8,
+        "#55e7ff"
+    ));
+ };
+
+ const shootInvaderLaser = (timestamp) => {
+    const aliveInvaders = invader.getAliveInvaders();
+
+    if (timestamp < nextInvaderShotAt || aliveInvaders.length === 0) {
+        return;
+    }
+
+    const shooter = aliveInvaders[Math.floor(Math.random() * aliveInvaders.length)];
+    const shooterBounds = invader.getBounds(shooter);
+    const startX = shooterBounds.x + shooterBounds.width / 2;
+    const startY = shooterBounds.y + shooterBounds.height;
+    const targetX = player.position.x + player.width / 2;
+    const targetY = player.position.y + player.height / 2;
+    const distance = Math.hypot(targetX - startX, targetY - startY) || 1;
+    const speed = 5;
+
+    invaderLasers.push(new Laser(
+        startX - 2.5,
+        startY,
+        ((targetX - startX) / distance) * speed,
+        ((targetY - startY) / distance) * speed,
+        "#ff5470"
+    ));
+    nextInvaderShotAt = timestamp + 1000 + Math.random() * 2000;
+ };
+
+ const updateLasers = (lasers) => {
+    for (const laser of lasers) {
+        laser.update();
+    }
+ };
+
+ const drawLasers = (lasers) => {
+    for (const laser of lasers) {
+        laser.draw(ctx);
+    }
+ };
+
+ const resetRound = () => {
+     player.reset(canvas.width, canvas.height);
+     invader.resetFormation(false);
+     playerLasers.length = 0;
+     invaderLasers.length = 0;
+     nextInvaderShotAt = 0;
+     gameOver = false;
+     gameOverScreen.hidden = true;
+ };
+
+ const showGameOver = () => {
+     gameOver = true;
+     player.isAlive = false;
+     gameOverScreen.hidden = false;
+ };
+
+ const removeOutsideLasers = (lasers) => {
+    for (let index = lasers.length - 1; index >= 0; index -= 1) {
+        if (lasers[index].isOutside(canvas)) {
+            lasers.splice(index, 1);
+        }
+    }
+ };
+
+ const laserHitsBarrier = (laser) => barriers.some((barrier) => hasCollision(laser, {
+    x: barrier.position.x,
+    y: barrier.position.y,
+    width: barrier.width,
+    height: barrier.height,
+ }));
+
+ const removeLasersBlockedByBarriers = (lasers) => {
+    for (let index = lasers.length - 1; index >= 0; index -= 1) {
+        if (laserHitsBarrier(lasers[index])) {
+            lasers.splice(index, 1);
+        }
+    }
+ };
+
+ const handleCollisions = () => {
+    for (let laserIndex = playerLasers.length - 1; laserIndex >= 0; laserIndex -= 1) {
+        const laser = playerLasers[laserIndex];
+
+        for (const target of invader.getAliveInvaders()) {
+            if (hasCollision(laser, invader.getBounds(target))) {
+                target.alive = false;
+                playerLasers.splice(laserIndex, 1);
+                break;
+            }
+        }
+    }
+
+    const playerBounds = {
+        x: player.position.x,
+        y: player.position.y,
+        width: player.width,
+        height: player.height,
+    };
+
+    for (let laserIndex = invaderLasers.length - 1; laserIndex >= 0; laserIndex -= 1) {
+        if (hasCollision(invaderLasers[laserIndex], playerBounds)) {
+            invaderLasers.splice(laserIndex, 1);
+            showGameOver();
+            break;
+        }
+    }
+ };
+
+ const gameLoop = (timestamp = 0) => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    starfield.update();
+    starfield.draw(ctx);
+
+    if (gameOver) {
+        player.draw(ctx);
+        invader.draw(ctx);
+        for (const barrier of barriers) {
+            barrier.draw(ctx);
+        }
+        window.requestAnimationFrame(gameLoop);
+        return;
+    }
 
     if (keys.left && player.position.x >= 0) {
         player.moveleft();
@@ -32,14 +202,39 @@ import Player from "./classes/Player.js";
         player.moveRight();
     };
 
-   
+    invader.update(canvas.width);
+    shootInvaderLaser(timestamp);
+    updateLasers(playerLasers);
+    updateLasers(invaderLasers);
+    removeLasersBlockedByBarriers(playerLasers);
+    removeLasersBlockedByBarriers(invaderLasers);
+    handleCollisions();
+
+    if (invader.isCleared()) {
+        invader.resetFormation(true);
+        playerLasers.length = 0;
+        invaderLasers.length = 0;
+    }
+
+    removeOutsideLasers(playerLasers);
+    removeOutsideLasers(invaderLasers);
 
     player.draw(ctx);
+    invader.draw(ctx);
+    for (const barrier of barriers) {
+        barrier.draw(ctx);
+    }
+    drawLasers(playerLasers);
+    drawLasers(invaderLasers);
 
     window.requestAnimationFrame(gameLoop);
  };
 
  gameLoop();
+
+ addEventListener("resize", resizeGame);
+
+ restartButton.addEventListener("click", resetRound);
 
   addEventListener("keydown", (event) =>{
     const key = event.key.toLowerCase();
@@ -50,6 +245,10 @@ import Player from "./classes/Player.js";
     
     if (key === "d") {
         keys.right = true;
+    }
+
+    if (key === "w") {
+        shootPlayerLaser();
     }
  });
 
@@ -65,6 +264,10 @@ import Player from "./classes/Player.js";
     
     if (key === "d") {
         keys.right = false;
+    }
+
+    if (!keys.left && !keys.right) {
+        player.stopMoving();
     }
  });
 
